@@ -23,7 +23,7 @@ func main() {
 
 	database, err := db.GetDB()
 	if err != nil {
-		log.Fatalf("Error getting database instance: %v", err)
+		log.Fatalf("Error fetching database instance: %v", err)
 	}
 	controller.InitDB(database)
 
