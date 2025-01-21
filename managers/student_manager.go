@@ -67,10 +67,20 @@ func UpdateStudent(db *sql.DB, id int, req *request.StudentRequest) (response.St
 }
 
 func DeleteStudent(db *sql.DB, id int) error {
-
-	err := service.DeleteStudent(db, id)
+	result, err := db.Exec("DELETE FROM student WHERE id = ?", id)
 	if err != nil {
 		return fmt.Errorf("failed to delete student: %v", err)
 	}
+
+	// Check if any rows were affected
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to check rows affected: %v", err)
+	}
+
+	if rowsAffected == 0 {
+		return sql.ErrNoRows // Use sql.ErrNoRows to indicate that no rows were found
+	}
+
 	return nil
 }

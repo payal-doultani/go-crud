@@ -113,5 +113,6 @@ func DeleteStudent(db *sql.DB, id int) error {
 	if err != nil {
 		return fmt.Errorf("failed to delete student: %v", err)
 	}
+	
 	return nil
 }

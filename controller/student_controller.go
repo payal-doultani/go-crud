@@ -4,11 +4,12 @@ import (
 	"database/sql"
 	"errors"
 	"log"
+	"net/http"
 	"regexp"
+	"strconv"
+
 	"github.com/payaldoultani/go-crud/managers"
 	"github.com/payaldoultani/go-crud/request"
-	"net/http"
-	"strconv"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/labstack/echo/v4"
@@ -42,7 +43,7 @@ func CreateStudent(c echo.Context) error {
 	// Initialize validator and register custom email validation
 	validate := validator.New()
 	validate.RegisterValidation("email_regex", validateEmail)
-	
+
 	// Validate the input
 	if err := validate.Struct(req); err != nil {
 		log.Println("Validation error:", err)
@@ -58,7 +59,7 @@ func CreateStudent(c echo.Context) error {
 	return c.JSON(http.StatusOK, createdStudent)
 }
 
-//GetAllStudents handles fetching all students
+// GetAllStudents handles fetching all students
 func GetAllStudents(c echo.Context) error {
 	students, err := managers.GetAllStudents(db)
 	if err != nil {
@@ -67,7 +68,7 @@ func GetAllStudents(c echo.Context) error {
 
 	return c.JSON(http.StatusOK, students)
 }
-	
+
 // GetStudentById handles fetching a specific student by ID
 func GetStudentById(c echo.Context) error {
 	id, err := strconv.Atoi(c.Param("id"))
@@ -96,8 +97,13 @@ func UpdateStudent(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid input"})
 	}
 
+	if req.Name == "" || req.Email == "" {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Name and Email are required"})
+	}
+
 	// Validate the input
 	validate := validator.New()
+	validate.RegisterValidation("email_regex", validateEmail)
 	if err := validate.Struct(&req); err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
 	}
@@ -105,9 +111,6 @@ func UpdateStudent(c echo.Context) error {
 	// Call manager to update the student
 	updatedStudent, err := managers.UpdateStudent(db, id, &req)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return c.JSON(http.StatusNotFound, map[string]string{"error": "Student not found"})
-		}
 		return c.JSON(http.StatusNotFound, map[string]string{"error": "Student not found"})
 	}
 
@@ -121,9 +124,13 @@ func DeleteStudent(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid student ID"})
 	}
 
+	// Call the manager to delete the student
 	err = managers.DeleteStudent(db, id)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		if errors.Is(err, sql.ErrNoRows) {
+			return c.JSON(http.StatusNotFound, map[string]string{"error": "Student not found"})
+		}
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to delete student"})
 	}
 
 	return c.JSON(http.StatusOK, map[string]string{"message": "Student deleted successfully"})
