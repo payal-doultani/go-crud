@@ -21,10 +21,10 @@ services:
     ports:
       - "3306:3306"
     environment:
-      MYSQL_ROOT_PASSWORD: TigerRoot1234
-      MYSQL_DATABASE: rtcdb
-      MYSQL_USER: siprtc
-      MYSQL_PASSWORD: Tiger1234
+      MYSQL_ROOT_PASSWORD: Root
+      MYSQL_DATABASE: go-crud
+      MYSQL_USER: payal
+      MYSQL_PASSWORD: payal
     volumes:
       - mysql_data:/var/lib/mysql
       

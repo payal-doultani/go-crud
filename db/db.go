@@ -1,70 +1,35 @@
 package db
 
 import (
-	"database/sql"
 	"fmt"
 	"log"
-	"os"
 
+	"github.com/beego/beego/v2/client/orm"
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/joho/godotenv"
+	"github.com/payaldoultani/go-crud/config"
 )
 
-var db *sql.DB
-
-func Connect() error {
-	 if err := godotenv.Load(); err != nil {
-	 	log.Printf("Warning: Error loading .env file: %v", err)
-	 }
-
-	dbHost := os.Getenv("DB_HOST")
-	dbPort := os.Getenv("DB_PORT")
-	dbUser := os.Getenv("DB_USER")
-	dbPass := os.Getenv("DB_PASSWORD")
-	dbName := os.Getenv("DB_NAME")
-
-	dsn := fmt.Sprintf(
-		"%s:%s@tcp(%s:%s)/%s?parseTime=true", 
-		dbUser, dbPass, dbHost, dbPort, dbName,
+func InitDB(cfg *config.Mysql) error {
+	mysqlDSN := fmt.Sprintf(
+		"%s:%s@tcp(%s:%s)/%s?charset=utf8",
+		cfg.DB_USER, cfg.DB_PASSWORD, cfg.DB_HOST, cfg.DB_PORT, cfg.DB_NAME,
 	)
 
-	var err error
-	db, err = sql.Open("mysql", dsn)
+	err := orm.RegisterDriver("mysql", orm.DRMySQL)
 	if err != nil {
-		return fmt.Errorf("error connecting to database: %v", err)
+		return fmt.Errorf("failed to register MySQL driver: %w", err)
 	}
 
-	if err := db.Ping(); err != nil {
-		return fmt.Errorf("error pinging database: %v", err)
+	err = orm.RegisterDataBase("default", "mysql", mysqlDSN)
+	if err != nil {
+		return fmt.Errorf("failed to register database: %w", err)
 	}
 
-	log.Println("Connected to database!")
-
-	createTableQuery := `
-	CREATE TABLE IF NOT EXISTS student (
-		id INT AUTO_INCREMENT PRIMARY KEY,
-		name VARCHAR(50) NOT NULL,
-		email VARCHAR(50) NOT NULL
-	);`
-
-	if _, err = db.Exec(createTableQuery); err != nil {
-		return fmt.Errorf("error creating table: %v", err)
+	err = orm.RunSyncdb("default", false, true)
+	if err != nil {
+		return fmt.Errorf("failed to synchronize database schema: %w", err)
 	}
 
-	log.Println("Student table is created!")
+	log.Println("Database connection established and schema synchronized successfully!")
 	return nil
-}
-
-func CloseDB() error {
-	if db != nil {
-		return db.Close()
-	}
-	return nil
-}
-
-func GetDB() (*sql.DB, error) {
-	if db == nil {
-		return nil, fmt.Errorf("database connection not initialized")
-	}
-	return db, nil
 }
